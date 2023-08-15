@@ -312,6 +312,13 @@ socket_close(int code, Datum arg)
  * length MaxListen), at the first position that isn't PGINVALID_SOCKET.
  *
  * RETURNS: STATUS_OK or STATUS_ERROR
+ *
+ * linux 套接字
+ * getaddrinfo ip字符串转换成 socket地址(xx.xx.x.xx)
+ * 为每个ip:port 创建套接字/并监听，存入 ListenSocket
+ *  socket(addr->ai_family, SOCK_STREAM, 0))：创建套接字
+ *  bind(fd, addr->ai_addr, addr->ai_addrlen)：套接字中写入套接字地址等信息
+ *  listen(fd, maxconn)：创建队列，等待接听
  */
 
 int
@@ -402,7 +409,7 @@ StreamServerPort(int family, const char *hostName, unsigned short portNumber,
 			continue;
 		}
 
-		/* See if there is still room to add 1 more socket. */
+		/* See if there is still room to add 1 more socket. 在ListenSocket 找到一个空地址 */
 		for (; listen_index < MaxListen; listen_index++)
 		{
 			if (ListenSocket[listen_index] == PGINVALID_SOCKET)
@@ -454,7 +461,7 @@ StreamServerPort(int family, const char *hostName, unsigned short portNumber,
 							   NI_NUMERICHOST);
 			addrDesc = addrBuf;
 		}
-
+        // socket
 		if ((fd = socket(addr->ai_family, SOCK_STREAM, 0)) == PGINVALID_SOCKET)
 		{
 			ereport(LOG,
@@ -711,6 +718,9 @@ Setup_AF_UNIX(const char *sock_path)
  *		accept().
  *
  * RETURNS: STATUS_OK or STATUS_ERROR
+ *
+ * 开始处理连接
+ *  这里 accept 接收请求，
  */
 int
 StreamConnection(pgsocket server_fd, Port *port)

@@ -580,6 +580,8 @@ GetHugePageSize(Size *hugepagesize, int *mmap_flags)
  * Pass the requested size in *size.  This function will modify *size to the
  * actual size of the allocation, if it ends up allocating a segment that is
  * larger than requested.
+ *
+ *
  */
 static void *
 CreateAnonymousSegment(Size *size)
@@ -592,6 +594,9 @@ CreateAnonymousSegment(Size *size)
 	/* PGSharedMemoryCreate should have dealt with this case */
 	Assert(huge_pages != HUGE_PAGES_ON);
 #else
+    /**
+     * 判断是否用大页
+     */
 	if (huge_pages == HUGE_PAGES_ON || huge_pages == HUGE_PAGES_TRY)
 	{
 		/*
@@ -599,12 +604,13 @@ CreateAnonymousSegment(Size *size)
 		 */
 		Size		hugepagesize;
 		int			mmap_flags;
-
+        // 得到大页大小
+        // 打开 "/proc/meminfo" ，得到Hugepagesize 大小 默认2m
 		GetHugePageSize(&hugepagesize, &mmap_flags);
-
+        // 调整大小
 		if (allocsize % hugepagesize != 0)
 			allocsize += hugepagesize - (allocsize % hugepagesize);
-
+        // mmap 分配大页，mmap_flags 包含大页标识
 		ptr = mmap(NULL, allocsize, PROT_READ | PROT_WRITE,
 				   PG_MMAP_FLAGS | mmap_flags, -1, 0);
 		mmap_errno = errno;
@@ -614,6 +620,7 @@ CreateAnonymousSegment(Size *size)
 	}
 #endif
 
+    // 正常分配
 	if (ptr == MAP_FAILED && huge_pages != HUGE_PAGES_ON)
 	{
 		/*
@@ -673,6 +680,14 @@ AnonymousShmemDetach(int status, Datum arg)
  * we do not fail upon collision with foreign shmem segments.  The idea here
  * is to detect and re-use keys that may have been assigned by a crashed
  * postmaster or backend.
+ *
+ * 分配共享内存
+ *  创建共享内存：CreateAnonymousSegment mmap
+ *  创建共享内存头：PGShmemHeader 56字节
+ *
+ * 结构体：
+ *   PGShmemHeader
+ *   共享内存
  */
 PGShmemHeader *
 PGSharedMemoryCreate(Size size,
@@ -714,6 +729,7 @@ PGSharedMemoryCreate(Size size,
 
 	if (shared_memory_type == SHMEM_TYPE_MMAP)
 	{
+        // 调用系统函数mmap，分配共享内存。
 		AnonymousShmem = CreateAnonymousSegment(&size);
 		AnonymousShmemSize = size;
 
@@ -731,6 +747,8 @@ PGSharedMemoryCreate(Size size,
 	 * ensure no more than one postmaster per data directory can enter this
 	 * loop simultaneously.  (CreateDataDirLockFile() does not entirely ensure
 	 * that, but prefer fixing it over coping here.)
+	 * 生成另一个共享内存段的key，此共享内存将使用systemV 方式创建
+	 * 它的大小就是上面计算出的"共享内存头"(sysvsize) 大小
 	 */
 	NextShmemSegID = statbuf.st_ino;
 
@@ -812,6 +830,7 @@ PGSharedMemoryCreate(Size size,
 	}
 
 	/* Initialize new segment. */
+    // sysvsize = hdr 共享内存头，写入相关数据 PGShmemHeader
 	hdr = (PGShmemHeader *) memAddress;
 	hdr->creatorPID = getpid();
 	hdr->magic = PGShmemMagic;

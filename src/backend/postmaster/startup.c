@@ -225,6 +225,9 @@ StartupProcExit(int code, Datum arg)
 /* ----------------------------------
  *	Startup Process main entry point
  * ----------------------------------
+ *
+ * StartupXLOG
+ *  数据库启动操作：查看数据文件是否正常，控制文件，editlog
  */
 void
 StartupProcessMain(void)
@@ -263,6 +266,7 @@ StartupProcessMain(void)
 
 	/*
 	 * Do what we came for.
+	 * 数据库启动操作：查看数据文件是否正常，控制文件，editlog
 	 */
 	StartupXLOG();
 

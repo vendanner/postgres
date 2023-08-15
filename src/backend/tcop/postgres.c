@@ -4081,6 +4081,9 @@ PostgresSingleUserMain(int argc, char *argv[],
  * NB: Single user mode specific setup should go to PostgresSingleUserMain()
  * if reasonably possible.
  * ----------------------------------------------------------------
+ * 接收客户端处理，客户端交互
+ * ReadCommand
+ * case 'Q': sql 查询处理
  */
 void
 PostgresMain(const char *dbname, const char *username)
@@ -4579,7 +4582,7 @@ PostgresMain(const char *dbname, const char *username)
 
 		switch (firstchar)
 		{
-			case 'Q':			/* simple query */
+			case 'Q':			/* simple query */  // sql 查询
 				{
 					const char *query_string;
 
@@ -4592,7 +4595,7 @@ PostgresMain(const char *dbname, const char *username)
 					if (am_walsender)
 					{
 						if (!exec_replication_command(query_string))
-							exec_simple_query(query_string);
+							exec_simple_query(query_string);    // sql 处理
 					}
 					else
 						exec_simple_query(query_string);

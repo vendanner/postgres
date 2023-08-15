@@ -52,6 +52,9 @@ AuxProcType MyAuxProcType = NotAnAuxProcess;	/* declared in miscadmin.h */
  *	 walwriter, walreceiver, bootstrapper and the shared memory checker code.
  *
  *	 This code is here just because of historical reasons.
+ *
+ *	 StartupProcess type
+ *	   
  */
 void
 AuxiliaryProcessMain(AuxProcType auxtype)
@@ -138,6 +141,7 @@ AuxiliaryProcessMain(AuxProcType auxtype)
 	switch (MyAuxProcType)
 	{
 		case StartupProcess:
+            // 启动流程时，进入这里
 			StartupProcessMain();
 			proc_exit(1);
 

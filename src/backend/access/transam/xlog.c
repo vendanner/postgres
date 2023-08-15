@@ -4321,12 +4321,18 @@ check_wal_buffers(int *newval, void **extra, GucSource source)
  *
  * reset just controls whether previous contents are to be expected (in the
  * reset case, there's a dangling pointer into old shared memory), or not.
+ *
+ * 读取控制文件(global/pg_control)，并设置参数
+ *   palloc 从内存池中分配一块内存
+ *   将控制文件内容读入 ControlFile(全局变量)
  */
 void
 LocalProcessControlFile(bool reset)
 {
 	Assert(reset || ControlFile == NULL);
+    // palloc 从内存池中分配一块内存
 	ControlFile = palloc(sizeof(ControlFileData));
+    // 将控制文件内容读入 ControlFile(全局变量)
 	ReadControlFile();
 }
 

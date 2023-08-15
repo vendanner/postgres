@@ -87,6 +87,7 @@ CalculateShmemSize(int *num_semaphores)
 	int			numSemas;
 
 	/* Compute number of semaphores we'll need */
+    // numSemas = MaxBackends + NUM_AUXILIARY_PROCS + NUM_EMULATION_SEMAPHORES
 	numSemas = ProcGlobalSemas();
 	numSemas += SpinlockSemas();
 
@@ -109,6 +110,7 @@ CalculateShmemSize(int *num_semaphores)
 	size = add_size(size, hash_estimate_size(SHMEM_INDEX_SIZE,
 											 sizeof(ShmemIndexEnt)));
 	size = add_size(size, dsm_estimate_size());
+    // 重点了解
 	size = add_size(size, BufferShmemSize());
 	size = add_size(size, LockShmemSize());
 	size = add_size(size, PredicateLockShmemSize());
@@ -168,6 +170,10 @@ CalculateShmemSize(int *num_semaphores)
  * through the same code as before.  (Note that the called routines mostly
  * check IsUnderPostmaster, rather than EXEC_BACKEND, to detect this case.
  * This is a bit code-wasteful and could be cleaned up.)
+ *
+ * 创建共享内存池(所有进程共用)
+ *  CalculateShmemSize：计算shared-memory 的大小，单位是字节；计算得到大小计入局部变量 size
+ *              size初始值为10万字节，也就是说shared-memory 最少不会低于10万字节
  */
 void
 CreateSharedMemoryAndSemaphores(void)
@@ -186,6 +192,7 @@ CreateSharedMemoryAndSemaphores(void)
 
 		/*
 		 * Create the shmem segment
+		 * 分配共享
 		 */
 		seghdr = PGSharedMemoryCreate(size, &shim);
 

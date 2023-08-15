@@ -6085,6 +6085,16 @@ InitializeOneGUCOption(struct config_generic *gconf)
  *
  * Returns true on success; on failure, prints a suitable error message
  * to stderr and returns false.
+ *
+ * 读取 postgresql.conf 并设置全局变量
+ * 1. 找到配置目录 configdir
+ * 2. 找到配置文件 postgresql.conf(默认情况)， 在configdir 目录下
+ * 3. 处理配置文件 ProcessConfigFile(在guc-file.l 中，是编译器自动生成) =>  GUC 参数转换为内部格式
+ *      主要逻辑在 ProcessConfigFileInternal
+ *          -> ParseConfigFile
+            -> set_config_option
+        参数的设置有点绕(不是直接设置globals 里的变量)，而是将变量包装在结构体中(guc_tables.h)
+        有很多类型bool、int、real、string...(类似Java 中ConfigOption)
  */
 bool
 SelectConfigFiles(const char *userDoption, const char *progname)
@@ -6136,6 +6146,7 @@ SelectConfigFiles(const char *userDoption, const char *progname)
 	/*
 	 * Set the ConfigFileName GUC variable to its final value, ensuring that
 	 * it can't be overridden later.
+	 * 设置 config_file(ConfigFileName) 参数 = fname
 	 */
 	SetConfigOption("config_file", fname, PGC_POSTMASTER, PGC_S_OVERRIDE);
 	free(fname);
@@ -8019,6 +8030,7 @@ set_config_option_ext(const char *name, const char *value,
 
 					if (conf->assign_hook)
 						conf->assign_hook(newval, newextra);
+                    // 设置参数值
 					*conf->variable = newval;
 					set_extra_field(&conf->gen, &conf->gen.extra,
 									newextra);
